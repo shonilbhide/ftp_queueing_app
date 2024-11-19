@@ -1,24 +1,50 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import qrcode
-import os
 import random
+from mailersend import emails
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Secret key for session management
+
+# Retrieve the admin username and password from environment variables
+ADMIN_USERNAME = os.environ.get('USERNAME')
+ADMIN_PASSWORD = os.environ.get('PASSWORD')
 
 # In-memory storage for daily submissions
 submissions = {}
 random_numbers_generated = False
 next_sequential_number = None
 
-# Admin credentials (for simplicity, hardcoded here)
-ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD = 'password'
-
 # Generate QR code for form URL
 def generate_qr_code(url):
     qr = qrcode.make(url)
     qr.save("static/qr_code.png")
+
+# Function to send email using MailerSend API
+def send_email(to_emails, subject, html_content, text_content):
+    # Initialize MailerSend email client with your API key
+    mailer = emails.NewEmailApiClient(api_key=os.environ.get('MAILERSEND_API_KEY'))
+
+    # Prepare email data
+    email_data = {
+        'from': {
+            'email': 'ftp@ncsu.edu',  # Replace with your verified sender email from MailerSend
+            'name': 'Feed the Pack'
+        },
+        'to': [{'email': email} for email in to_emails],
+        'subject': subject,
+        'html': html_content,
+        'text': text_content,
+    }
+
+    # Send email using the MailerSend API client
+    try:
+        response = mailer.send(email_data)
+        print(f"Email sent successfully to {to_emails}")
+    except Exception as e:
+        print(f"Error sending email: {e}")
+
 
 @app.route('/')
 def home():
@@ -53,7 +79,13 @@ def admin_panel():
         return redirect(url_for('login'))  # Redirect to login if not logged in
     
     global random_numbers_generated
-    return render_template('admin.html', submissions=submissions, random_generated=random_numbers_generated)
+    sorted_submissions = None
+    
+    # If tokens have been generated, sort submissions by ticket_number
+    if random_numbers_generated:
+        sorted_submissions = sorted(submissions.items(), key=lambda x: x[1]['ticket_number'])
+    
+    return render_template('admin.html', submissions=submissions, random_generated=random_numbers_generated, sorted_submissions=sorted_submissions)
 
 @app.route('/open_form', methods=['POST'])
 def open_form():
@@ -108,24 +140,42 @@ def customer_form():
 
 @app.route('/generate_random_numbers', methods=['POST'])
 def generate_random_numbers():
-    """Generate random numbers for all current submissions."""
+    """Generate random numbers for all current submissions and send emails."""
     if not session.get('logged_in'):
         return redirect(url_for('login'))  # Protect this route
     
     global random_numbers_generated, next_sequential_number
     
     if not random_numbers_generated:
-        emails = list(submissions.keys())
-        n = len(emails)
+        emails_list = list(submissions.keys())
+        n = len(emails_list)
         random_numbers = random.sample(range(1, n + 1), n)
         
-        for i, email in enumerate(emails):
+        # Prepare data for sending emails via MailerSend API
+        recipients_list = []
+        
+        for i, email in enumerate(emails_list):
             submissions[email]['ticket_number'] = random_numbers[i]
+            
+            fullname = submissions[email]['fullname']
+            token_number = submissions[email]['ticket_number']
+            
+            # Prepare email content (HTML and text versions)
+            subject = "Your Token Number"
+            text_content = f"Hello {fullname},\n\nYour assigned token number is: {token_number}.\n\nThank you!"
+            html_content = f"<p>Hello {fullname},</p><p>Your assigned token number is: <strong>{token_number}</strong>.</p><p>Thank you!</p>"
+            
+            # Add recipient email to list for batch sending (MailerSend supports batch sending)
+            recipients_list.append(email)
+            
+            # Send individual email using MailerSend (or you can batch send all at once after the loop)
+            send_email([email], subject, html_content, text_content)
         
         random_numbers_generated = True
         next_sequential_number = n
     
     return redirect(url_for('admin_panel'))
+
 
 @app.route('/check_number', methods=['GET', 'POST'])
 def check_number():
@@ -162,7 +212,5 @@ def close_form():
     return redirect(url_for('admin_panel'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    
-    # Bind the app to host 0.0.0.0 and the specified port
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
