@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import qrcode
+import os
 import random
 
 app = Flask(__name__)
