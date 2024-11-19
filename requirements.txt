@@ -1,3 +1,4 @@
 Flask==2.1.1
 qrcode[pil]==7.3.1
 Werkzeug==2.2.2
+mailersend==0.5.8
