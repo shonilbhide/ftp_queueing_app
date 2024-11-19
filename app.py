@@ -24,27 +24,35 @@ def generate_qr_code(url):
 # Function to send email using MailerSend API
 def send_email(to_emails, subject, html_content, text_content):
     # Initialize MailerSend email client with your API key
-    mailer = emails.NewEmailApiClient(api_key=os.environ.get('MAILERSEND_API_KEY'))
+    mailer = emails.NewEmail(os.getenv('MAILERSEND_API_KEY'))
 
-    # Prepare email data
-    email_data = {
-        'from': {
-            'email': 'ftp@ncsu.edu',  # Replace with your verified sender email from MailerSend
-            'name': 'Feed the Pack'
-        },
-        'to': [{'email': email} for email in to_emails],
-        'subject': subject,
-        'html': html_content,
-        'text': text_content,
+    # Define email body content
+    mail_body = {}
+
+    # Define sender details (replace with your verified sender email)
+    mail_from = {
+        "name": "Your Name",
+        "email": "your-email@domain.com"
     }
 
-    # Send email using the MailerSend API client
+    # Define recipients list (supporting multiple recipients)
+    recipients = [{"name": "", "email": email} for email in to_emails]
+
+    # Set up the email details
+    mailer.set_mail_from(mail_from, mail_body)
+    mailer.set_mail_to(recipients, mail_body)
+    mailer.set_subject(subject, mail_body)
+    mailer.set_html_content(html_content, mail_body)
+    mailer.set_plaintext_content(text_content, mail_body)
+
+    # Send the email using the MailerSend API client
     try:
-        response = mailer.send(email_data)
-        print(f"Email sent successfully to {to_emails}")
+        response = mailer.send(mail_body)
+        print(f"Email sent successfully! Status code: {response.status_code}")
+        return response.status_code
     except Exception as e:
         print(f"Error sending email: {e}")
-
+        return None
 
 @app.route('/')
 def home():
@@ -151,9 +159,6 @@ def generate_random_numbers():
         n = len(emails_list)
         random_numbers = random.sample(range(1, n + 1), n)
         
-        # Prepare data for sending emails via MailerSend API
-        recipients_list = []
-        
         for i, email in enumerate(emails_list):
             submissions[email]['ticket_number'] = random_numbers[i]
             
@@ -165,17 +170,13 @@ def generate_random_numbers():
             text_content = f"Hello {fullname},\n\nYour assigned token number is: {token_number}.\n\nThank you!"
             html_content = f"<p>Hello {fullname},</p><p>Your assigned token number is: <strong>{token_number}</strong>.</p><p>Thank you!</p>"
             
-            # Add recipient email to list for batch sending (MailerSend supports batch sending)
-            recipients_list.append(email)
-            
-            # Send individual email using MailerSend (or you can batch send all at once after the loop)
+            # Send individual email using MailerSend API (or batch send all at once after the loop)
             send_email([email], subject, html_content, text_content)
         
         random_numbers_generated = True
         next_sequential_number = n
     
     return redirect(url_for('admin_panel'))
-
 
 @app.route('/check_number', methods=['GET', 'POST'])
 def check_number():
