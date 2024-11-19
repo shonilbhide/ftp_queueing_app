@@ -161,4 +161,7 @@ def close_form():
     return redirect(url_for('admin_panel'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    
+    # Bind the app to host 0.0.0.0 and the specified port
+    app.run(host='0.0.0.0', port=port)
