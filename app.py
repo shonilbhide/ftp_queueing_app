@@ -30,20 +30,18 @@ def send_email(to_emails, subject, html_content, text_content):
     mail_body = {}
 
     # Define sender details (replace with your verified sender email)
-    mail_from = {
-        "name": "Your Name",
-        "email": "your-email@domain.com"
-    }
+
 
     # Define recipients list (supporting multiple recipients)
     recipients = [{"name": "", "email": email} for email in to_emails]
 
     # Set up the email details
-    mailer.set_mail_from(mail_from, mail_body)
+
     mailer.set_mail_to(recipients, mail_body)
     mailer.set_subject(subject, mail_body)
     mailer.set_html_content(html_content, mail_body)
     mailer.set_plaintext_content(text_content, mail_body)
+
 
     # Send the email using the MailerSend API client
     try:
