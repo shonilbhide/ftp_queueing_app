@@ -50,7 +50,8 @@ def send_email(to_emails, subject, html_content, text_content):
         return response.status_code
     except Exception as e:
         print(f"Error sending email: {e}")
-        return None
+        pass
+        
 
 @app.route('/')
 def home():
