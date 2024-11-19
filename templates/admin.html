@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+
+  <!-- Logout Button -->
+  <form action="/logout" method="get">
+      <button type="submit">Logout</button>
+  </form>
+
+  <!-- Open Form Button -->
+  <form action="/open_form" method="post">
+      <button type="submit">Open Form for Today</button>
+  </form>
+
+  <!-- Show QR Code -->
+  <img src="/static/qr_code.png" alt="QR Code">
+
+  <!-- Submissions Table -->
+  <h2>Submissions:</h2>
+  <table border="1">
+      <tr>
+          <th>Email</th>
+          <th>Full Name</th>
+          <th>Phone</th>
+          <th>Ticket Number</th>
+      </tr>
+      {% for email, info in submissions.items() %}
+      <tr>
+          <td>{{ email }}</td>
+          <td>{{ info.fullname }}</td>
+          <td>{{ info.phone }}</td>
+          <td>{{ info.ticket_number }}</td>
+      </tr>
+      {% endfor %}
+  </table>
+
+  <!-- Generate Random Numbers Button -->
+  {% if not random_generated %}
+      <form action="/generate_random_numbers" method="post">
+          <button type="submit">Generate Random Numbers</button>
+      </form>
+  {% endif %}
+
+  <!-- Close Form Button -->
+  <form action="/close_form" method="post">
+      <button type="submit">Close Form for Today</button>
+  </form>
+
+</body>
+</html>
